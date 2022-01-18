@@ -14,22 +14,24 @@ def getAPI_Key():
     f = open("C:/Users/Gyuchan/Documents/api_key.txt","r")
     return f.read()
 
+def getChallengerPlayers():
+    return lol_watcher.league.challenger_by_queue('oc1', 'RANKED_SOLO_5x5')
+
+
 lol_watcher = LolWatcher(getAPI_Key())
 
-my_region = 'oc1'
+playerName = []
+challengers = getChallengerPlayers()
+for player in challengers['entries']:
+    playerName.append(player['summonerName'])
+    print(lol_watcher.summoner.by_name('oc1',player['summonerName'])['puuid'])
+print(playerName)
 
-me = lol_watcher.summoner.by_name(my_region, 'Kangapooh')
-print(me)
-
-players = lol_watcher.league.challenger_by_queue('oc1', 'RANKED_SOLO_5x5')
-print(players)
-#for player in players['entries']:
-#    print(player['summonerName'])
-#print(lol_watcher.league.challenger_by_queue('oc1','RANKED_SOLO_5x5'))
-
+print(lol_watcher.match.matchlist_by_puuid('AMERICAS', 'CvwncRD5RvcAzPCglCktYW60qoUQpY2-vCx4He0nKbRx5wFXvmncml3cskf4COihUSGJju999OGS5w',0,4))
+print(lol_watcher.match.by_id('AMERICAS','OC1_503778638'))
 
 try:
-    response = lol_watcher.summoner.by_name(my_region, 'moirengu')
+    response = lol_watcher.summoner.by_name('oc1', 'moirengu')
 except ApiError as err:
     if err.response.status_code == 429:
         print('We should retry in {} seconds.'.format(err.response.headers['Retry-After']))
