@@ -18,28 +18,51 @@ def getAPI_Key():
     f = open("C:/Users/Gyuchan/Documents/api_key.txt","r")
     return f.read()
 
-def getChallengerPlayersPuuid():
+def getChallengerPlayersPuuid(server):
     puuid = []
-    for player in lol_watcher.league.challenger_by_queue('oc1', 'RANKED_SOLO_5x5')['entries']:
-        puuid.append(lol_watcher.summoner.by_name('oc1',player['summonerName'])['puuid'])
+    for player in lol_watcher.league.challenger_by_queue(server, 'RANKED_SOLO_5x5')['entries']:
+        puuid.append(lol_watcher.summoner.by_name(server,player['summonerName'])['puuid'])
     return puuid
 
-def getMatchIDFromPuuid(puuid):
+def getMatchIDFromPuuid(server, puuid):
     matches = []
     for entry in puuid:
-        matches+=lol_watcher.match.matchlist_by_puuid('AMERICAS', entry,0,4,420)
+        matches+=lol_watcher.match.matchlist_by_puuid('ASIA', entry,0,4,420)
     return list(dict.fromkeys(matches))
     
 def getMatchMetaData_ID(server, matchID):
     match = lol_watcher.match.by_id(server, matchID)
     return match['metadata'], match['info']
-def challengerMatchStats(match, role):
-    pair = [match]
-    metaData, info = getMatchMetaData_ID('AMERICAS', match)
+
+def challengerLaneStats(match, role):
+    laneStatistics = [match]
+    teamCount = 0; 
+    metaData, info = getMatchMetaData_ID('ASIA', match)
     for participant in info['participants']:
         if participant['teamPosition'] == role:
-            pair.append(participant['championName'])
-    return pair
+            laneStatistics.append([participant['championName'],participant['win']])
+            teamCount+=1
+    return laneStatistics
+
+def championWinLose(champList):
+    played = {}
+    won = {}
+    winRate = []
+    for champ in champList:
+        if champ[0] not in played:
+            played.update({champ[0]:1})
+            if champ[1] == True:
+                won.update({champ[0]:1})
+            else:
+                won.update({champ[0]:0})
+        else:
+            played[champ[0]]+=1
+            if champ[1] == True:
+                won[champ[0]]+=1
+    for item in played:
+        winRate.append([item, f'{won[item]/played[item]*100:.1f}'])
+    return winRate
+    
 
 if __name__=="__main__":
     lol_watcher = LolWatcher(getAPI_Key())
@@ -47,13 +70,23 @@ if __name__=="__main__":
     if response.lower() == 'challenger queue':
         
         role = input("Which role would you like to compare?\nTOP, JUNGLE, MIDDLE, BOTTOM, UTILITY\n")
+        server = input("What server is would you like to search?\nBR1, EUN1, EUW1, JP1, Kr, LA1, LA2, NA1, OC1, RU, TR1\n")
         
-        challengerPuuid = getChallengerPlayersPuuid()
-        matches = getMatchIDFromPuuid(challengerPuuid)
+        challengerPuuid = getChallengerPlayersPuuid(server)
+        print("ChallengerPuuid retrieval Successful")
+        
+        matches = getMatchIDFromPuuid(server, challengerPuuid)
+        print("playerMatchID retrieval Successful")
+        print(len(matches))
+        
+        championToAnalyze=[]
         for match in matches:
-            topChamps = challengerMatchStats(match, role.upper())
-            print(topChamps)
-
+            championMatchUp = challengerLaneStats(match, role.upper())
+            championToAnalyze.append(championMatchUp[1])
+            championToAnalyze.append(championMatchUp[2])
+        #print(championToAnalyze)
+        print(championWinLose(championToAnalyze))
+        
         # for puid in metaData['participants']:
         #     print(lol_watcher.summoner.by_puuid('oc1', puid))
             
@@ -72,12 +105,14 @@ if __name__=="__main__":
                 found = True
             except ApiError as err:
                 if err.response.status_code == 404:
-                    print("Summoner with that name in %s not found."%server, end="")
+                    print("Summoner with that name in %s not found.\n(Name is case sensitive)"%server, end="")
         print(response)
     else:
-        for participant in lol_watcher.match.by_id('AMERICAS', 'OC1_504129193')['metadata']['participants']:
-            # print(participant)
-            print(lol_watcher.summoner.by_puuid('oc1',participant)['name'])
+        info = lol_watcher.match.by_id('AMERICAS', 'OC1_504263587')['info']['participants']
+        for a in info:
+            print(a['championName'])
+        print(info)
+        
     
     
     
